@@ -67,6 +67,16 @@
         "item_name": "Hei\u00dfes Kakaogetr\u00e4nk",
         "price": 3.79,
         "date": "2026-04-25T05:05:00.169936"
+      },
+      {
+        "item_name": "Fr\u00fchst\u00fcck R\u00fchrei natur",
+        "price": 6.99,
+        "date": "2026-04-25T06:10:27.509448"
+      },
+      {
+        "item_name": "Hei\u00dfes Kakaogetr\u00e4nk",
+        "price": 3.79,
+        "date": "2026-04-25T06:10:27.509448"
       }
     ],
     "sp_1": [
@@ -109,6 +119,16 @@
         "item_name": "Dallmayr Milchkaffee",
         "price": 3.79,
         "date": "2026-04-25T05:05:00.169936"
+      },
+      {
+        "item_name": "Fr\u00fchst\u00fcck R\u00fchrei natur",
+        "price": 6.99,
+        "date": "2026-04-25T06:10:27.509448"
+      },
+      {
+        "item_name": "Dallmayr Milchkaffee",
+        "price": 3.79,
+        "date": "2026-04-25T06:10:27.509448"
       }
     ]
   }

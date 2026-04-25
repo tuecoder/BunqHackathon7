@@ -1,4 +1,4 @@
-.PHONY: install setup backend frontend add-payments approve test test-backend test-frontend help
+.PHONY: install setup backend frontend add-payments approve topup test test-backend test-frontend help
 
 # ── Python detection ──────────────────────────────────────────────────────────
 # Use venv Python if it exists; fall back to whatever python is in PATH.
@@ -36,6 +36,7 @@ help:
 	@echo   Demo scripts
 	@echo     make add-payments   Add 3 more demo transactions to Alice
 	@echo     make approve        Approve all pending payment requests
+	@echo     make topup          Add 500 euro to Alice^'s account
 	@echo.
 	@echo   Tests
 	@echo     make test           Backend + frontend tests
@@ -71,6 +72,9 @@ add-payments:
 
 approve:
 	cd backend && $(PYTHON) approve_requests.py --all
+
+topup:
+	cd backend && $(PYTHON) topup.py
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 test-backend:
