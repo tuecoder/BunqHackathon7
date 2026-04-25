@@ -64,6 +64,7 @@ export default function HomePage({ onTxSelect, onReset }) {
   const [groups, setGroups] = useState([])
   const [myMember, setMyMember] = useState(null)
   const [balanceRefreshing, setBalanceRefreshing] = useState(false)
+  const [setupNeeded, setSetupNeeded] = useState(false)
 
   // Create group form
   const [showCreateGroup, setShowCreateGroup] = useState(false)
@@ -78,21 +79,26 @@ export default function HomePage({ onTxSelect, onReset }) {
   }, [])
 
   async function loadData() {
-    const [membersData] = await Promise.all([loadMembers(), loadGroups()])
+    // Kick off all three in parallel — transactions use sp_0 immediately
+    // rather than waiting for members to resolve first
+    await Promise.all([loadMembers(), loadGroups(), loadTransactions('sp_0')])
   }
 
   async function loadMembers() {
     try {
       const res = await fetch('/api/sandbox-users')
-      if (res.ok) {
-        const data = await res.json()
-        dispatch({ type: 'SET_MEMBERS', payload: data.members })
-        const me = data.members.find(m => m.id === (state.myMemberId ?? 'sp_0'))
-        setMyMember(me ?? data.members[0])
-        const meId = me?.id ?? data.members[0]?.id ?? 'sp_0'
-        loadTransactions(meId)
+      if (!res.ok) {
+        if (res.status === 503) setSetupNeeded(true)
+        return
       }
-    } catch {}
+      setSetupNeeded(false)
+      const data = await res.json()
+      dispatch({ type: 'SET_MEMBERS', payload: data.members })
+      const me = data.members.find(m => m.id === (state.myMemberId ?? 'sp_0'))
+      setMyMember(me ?? data.members[0])
+    } catch {
+      setSetupNeeded(true)
+    }
   }
 
   async function loadTransactions(memberId) {
@@ -235,12 +241,23 @@ export default function HomePage({ onTxSelect, onReset }) {
             )}
             {!txLoading && transactions.length === 0 && (
               <div className="py-12 text-center">
-                <p className="text-sm" style={{ color: '#8e8e93' }}>
-                  No transactions yet
-                </p>
-                <p className="text-xs mt-1" style={{ color: '#3a3a3c' }}>
-                  Run setup_sandbox.py to create demo data
-                </p>
+                {setupNeeded ? (
+                  <>
+                    <p className="text-sm font-medium" style={{ color: '#ff453a' }}>
+                      Sandbox not set up
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: '#3a3a3c' }}>
+                      Run: cd backend && python setup_sandbox.py
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm" style={{ color: '#8e8e93' }}>No transactions yet</p>
+                    <p className="text-xs mt-1" style={{ color: '#3a3a3c' }}>
+                      Run add_demo_payments.py to add demo data
+                    </p>
+                  </>
+                )}
               </div>
             )}
             {!txLoading && transactions.length > 0 && (

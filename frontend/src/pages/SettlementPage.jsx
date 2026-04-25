@@ -43,12 +43,48 @@ export default function SettlementPage({ onBack, onDone }) {
         const data = await res.json()
         setStatuses(prev => ({ ...prev, [i]: 'sent' }))
         setUrls(prev => ({ ...prev, [i]: data.bunq_me_url }))
-        requests.push({ to: t.to, toName: creditor?.name, amount: t.amount, bunqMeUrl: data.bunq_me_url })
+        requests.push({
+          to: t.to,
+          toName: creditor?.name,
+          from: t.from,
+          fromName: debtor?.name,
+          amount: t.amount,
+          bunqMeUrl: data.bunq_me_url,
+          requestId: data.request_id ?? null,
+        })
       } catch {
         setStatuses(prev => ({ ...prev, [i]: 'error' }))
       }
     }
     dispatch({ type: 'UPDATE_FLOW', payload: { sentRequests: requests } })
+
+    // Record split for status tracking
+    if (requests.length > 0) {
+      try {
+        const splitRes = await fetch('/api/splits', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tx_description: tx?.merchant ?? 'Expense',
+            tx_amount: Math.abs(tx?.amount ?? 0),
+            requests: requests.map(r => ({
+              to_member_id: r.to,
+              to_name: r.toName,
+              from_member_id: r.from,
+              from_name: r.fromName,
+              amount: r.amount,
+              request_id: r.requestId ?? null,
+              bunq_me_url: r.bunqMeUrl ?? null,
+            })),
+          }),
+        })
+        if (splitRes.ok) {
+          const splitData = await splitRes.json()
+          dispatch({ type: 'UPDATE_FLOW', payload: { splitId: splitData.split_id } })
+        }
+      } catch {}
+    }
+
     setSending(false)
   }
 

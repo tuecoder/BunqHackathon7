@@ -1,147 +1,115 @@
 # bunq Split — Hackathon 7.0
 
-A multimodal AI-powered bill splitter built on top of the bunq API. Point your phone at a restaurant receipt, let Claude extract the items, pick who's splitting, and send real bunq payment requests in one tap.
+A multimodal AI-powered bill splitter built on the bunq API. Point your phone at a receipt, let Claude extract the items, choose who splits, and send real bunq payment requests in one tap.
 
-## How it works
-
-1. **Home** — see Alice's recent transactions (Transactions tab) and shared groups (Groups tab)
-2. **Transaction detail** — tap any transaction and add a receipt photo
-3. **Camera** — capture or upload a receipt image
-4. **Digital bill** — Claude Vision extracts line items automatically
-5. **Split flow** — choose who splits, how (equal / by item / custom %), review the settlement plan
-6. **Settlement** — send real bunq.me payment request links to each person
+**Flow:** Home → Transaction → Camera → Digital bill → Split target → Split method → Configure → Settlement → Sent (with live paid/pending status)
 
 ---
 
 ## Prerequisites
 
-| Tool | Minimum version |
-|------|----------------|
+| Tool | Version |
+|------|---------|
 | Python | 3.10+ |
 | Node.js | 18+ |
 | npm | 9+ |
+| GNU make | any |
 
-You also need two API keys:
+> **Windows:** install `make` via [Chocolatey](https://chocolatey.org/) (`choco install make`) or use Git Bash which includes it.
 
-- **bunq Sandbox API key** — create a sandbox account and get a key at [tinker.bunq.com](https://tinker.bunq.com)
-- **Anthropic API key** — get one at [console.anthropic.com](https://console.anthropic.com)
+Two API keys are required — get them before starting:
+
+- **bunq Sandbox API key** — [tinker.bunq.com](https://tinker.bunq.com)
+- **Anthropic API key** — [console.anthropic.com](https://console.anthropic.com)
 
 ---
 
-## 1. Clone and configure environment
+## Quick start
 
 ```bash
-git clone <repo-url>
-cd BunqHackathon7
+# 1. Configure environment
+cp backend/.env.example backend/.env
+#    → edit backend/.env and fill in ANTHROPIC_API_KEY and BUNQ_API_KEY
+
+# 2. Install everything
+make install
+
+# 3. Provision sandbox users, seed groups, create initial transactions
+make setup
+
+# 4. Terminal A — start the API
+make backend
+
+# 5. Terminal B — start the UI
+make frontend
 ```
 
-Copy the environment template and fill in your keys:
+Open **http://localhost:5173** — Alice's balance and groups appear immediately.
+
+---
+
+## All make targets
+
+```
+make install        Install backend venv + pip deps + npm packages
+make setup          One-time sandbox setup (provision users, seed data)
+
+make backend        Start API server     http://localhost:8000
+make frontend       Start React UI       http://localhost:5173
+
+make add-payments   Add 3 more demo transactions to Alice's history
+make approve        Approve all pending payment requests (friends pay up)
+
+make test           Run backend (pytest) + frontend (vitest) tests
+make test-backend   pytest only
+make test-frontend  vitest only
+```
+
+---
+
+## Demo scripts
+
+### Add demo transactions
+
+Each run of `make add-payments` creates 3 real bunq payments from Alice (cycles through 12 different merchants). Run it multiple times to build up a realistic transaction history.
 
 ```bash
-cd backend
-cp .env.example .env
+make add-payments
+# ✓ Albert Heijn groceries  → Bob    (€54.20)
+# ✓ Dinner Café de Jaren    → Carlos (€38.50)
+# ✓ Spotify subscription    → Dana   (€9.99)
 ```
 
-Edit `backend/.env`:
+### Approve payment requests
+
+After splitting a bill in the app, friends' payment requests show as **pending** on the Sent screen. Run this script to simulate them paying:
+
+```bash
+make approve
+# ✓ Bob paid €18.10 for 'Albert Heijn groceries'
+# ✓ Carlos paid €12.80 for 'Albert Heijn groceries'
+```
+
+Then tap **Refresh** on the Sent screen — statuses update to **paid**.
+
+To approve interactively (with a confirmation prompt):
+
+```bash
+cd backend && python approve_requests.py
+```
+
+---
+
+## Environment variables
+
+`backend/.env`:
 
 ```
-ANTHROPIC_API_KEY=sk-ant-...
-BUNQ_API_KEY=sandbox_...
+ANTHROPIC_API_KEY=sk-ant-...          # required — Claude Vision bill extraction
+BUNQ_API_KEY=sandbox_...              # required — bunq sandbox API key
 BUNQ_SANDBOX=true
-BUNQ_MONETARY_ACCOUNT_ID=    # leave blank — auto-detected on first run
+BUNQ_MONETARY_ACCOUNT_ID=             # leave blank — auto-detected
 ```
-
----
-
-## 2. Install backend dependencies
-
-```bash
-cd backend
-python -m venv venv
-
-# macOS / Linux
-source venv/bin/activate
-
-# Windows
-venv\Scripts\activate
-
-pip install -r requirements.txt
-```
-
----
-
-## 3. Run the one-time sandbox setup
-
-This script provisions 5 sandbox users (Alice, Bob, Carlos, Dana, Eva), funds each with €500 from the bunq sugar daddy, creates 5 demo payments from Alice, and seeds the default groups.
-
-```bash
-cd backend          # must run from inside backend/
-python setup_sandbox.py
-```
-
-Expected output (abbreviated):
-
-```
-============================================================
-bunq Sandbox Setup
-============================================================
-
-[1/3] Provisioning sandbox users...
-  ✓ 5 users ready
-
-[2/3] Creating demo transactions from Alice...
-  ✓ Albert Heijn groceries → Bob (€62.40)
-  ✓ Dinner at Restaurant Lastage → Carlos (€45.00)
-  ✓ Airbnb Berlin accommodation → Dana (€180.00)
-  ✓ Uber taxi to airport → Eva (€12.50)
-  ✓ Movie tickets → Bob (€18.00)
-
-[3/3] Seeding groups...
-  ✓ Created group: 🏠 Roommates
-  ✓ Created group: ✈️ Berlin Trip
-============================================================
-```
-
-> You only need to run this once. Re-running is safe — it skips users and groups that already exist.
-
----
-
-## 4. Start the backend
-
-```bash
-cd backend
-uvicorn main:app --reload
-```
-
-The API runs on **http://localhost:8000**. Verify it's up:
-
-```
-GET http://localhost:8000/api/health
-```
-
----
-
-## 5. Install frontend dependencies
-
-Open a new terminal:
-
-```bash
-cd frontend
-npm install
-```
-
----
-
-## 6. Start the frontend
-
-```bash
-cd frontend
-npm run dev
-```
-
-Open **http://localhost:5173** in your browser.
-
-The Vite dev server proxies all `/api/*` requests to the backend on port 8000 — no extra config needed.
 
 ---
 
@@ -149,26 +117,29 @@ The Vite dev server proxies all `/api/*` requests to the backend on port 8000 �
 
 ```
 BunqHackathon7/
+├── Makefile
 ├── backend/
-│   ├── main.py               # FastAPI app + lifespan
-│   ├── routes.py             # All API endpoints
-│   ├── bunq_service.py       # bunq API integration
-│   ├── ai_extractor.py       # Claude Vision bill extraction
-│   ├── sandbox_pool.py       # 5-user sandbox management
-│   ├── groups_store.py       # Group JSON persistence
-│   ├── setup_sandbox.py      # One-time setup script
+│   ├── main.py                 FastAPI app + lifespan
+│   ├── routes.py               All API endpoints
+│   ├── bunq_service.py         bunq API integration
+│   ├── ai_extractor.py         Claude Vision bill extraction
+│   ├── sandbox_pool.py         5-user sandbox management
+│   ├── groups_store.py         Group JSON persistence
+│   ├── splits_store.py         Split + payment status persistence
+│   ├── setup_sandbox.py        One-time sandbox setup script
+│   ├── add_demo_payments.py    Adds 3 demo transactions per run
+│   ├── approve_requests.py     Approves pending payment requests
 │   ├── requirements.txt
 │   └── .env.example
 ├── frontend/
 │   ├── src/
-│   │   ├── App.jsx           # Screen router
-│   │   ├── store/
-│   │   │   └── tripStore.jsx # Global state (Context + Reducer)
-│   │   ├── pages/            # One file per screen
-│   │   └── components/       # Shared UI components
+│   │   ├── App.jsx             Screen router
+│   │   ├── store/tripStore.jsx Global state (Context + Reducer)
+│   │   ├── pages/              One file per screen
+│   │   └── components/         Shared UI components
 │   ├── package.json
 │   └── vite.config.js
-└── hackathon_toolkit/        # bunq SDK + example scripts
+└── hackathon_toolkit/          bunq SDK + example scripts
 ```
 
 ---
@@ -178,65 +149,75 @@ BunqHackathon7/
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/api/health` | Health check |
+| `GET` | `/api/sandbox-users` | Pool members + Alice's balance |
 | `GET` | `/api/transactions?member_id=sp_0` | Alice's transaction list |
-| `GET` | `/api/sandbox-users` | All 5 sandbox members with balances |
-| `GET` | `/api/groups` | List groups |
+| `GET` | `/api/groups` | List groups with member details |
 | `POST` | `/api/groups` | Create a group |
-| `POST` | `/api/extract-bill` | Upload receipt image → Claude extracts items |
-| `POST` | `/api/request-payment` | Send bunq.me payment request |
-
----
-
-## Running tests
-
-**Backend:**
-
-```bash
-cd backend
-pytest tests/ -v
-```
-
-**Frontend:**
-
-```bash
-cd frontend
-npm test
-```
+| `POST` | `/api/extract-bill` | Receipt image → Claude extracts items |
+| `POST` | `/api/request-payment` | Create bunq.me payment request |
+| `POST` | `/api/splits` | Record a completed split |
+| `GET` | `/api/splits/{split_id}` | Live paid/pending status for a split |
 
 ---
 
 ## Sandbox users
 
-After running `setup_sandbox.py`, five users are available:
-
 | ID | Name | Role |
 |----|------|------|
-| `sp_0` | Alice | Main user (hardcoded) |
+| `sp_0` | Alice | Main user (always hardcoded) |
 | `sp_1` | Bob | Contact |
 | `sp_2` | Carlos | Contact |
 | `sp_3` | Dana | Contact |
 | `sp_4` | Eva | Contact |
 
-Default groups:
+Default groups seeded by `make setup`:
 - **Roommates** — Alice, Bob, Carlos
 - **Berlin Trip** — Alice, Dana, Eva
 
 ---
 
+## Manual setup (without make)
+
+<details>
+<summary>Expand for step-by-step commands</summary>
+
+```bash
+# Backend
+python -m venv backend/venv
+source backend/venv/bin/activate        # Windows: backend\venv\Scripts\activate
+pip install -r backend/requirements.txt
+
+# Configure
+cp backend/.env.example backend/.env    # then edit with your keys
+
+# Provision sandbox
+cd backend && python setup_sandbox.py
+
+# Start backend
+cd backend && python -m uvicorn main:app --reload
+
+# Frontend (new terminal)
+cd frontend && npm install && npm run dev
+```
+
+</details>
+
+---
+
 ## Troubleshooting
 
-**`400 Bad Request` on payment creation**
-Make sure the payment body only contains `amount`, `counterparty_alias`, and `description`. The `allow_bunqme` field belongs on `request-inquiry`, not `payment`.
-
 **`bunq_context.json` / `sandbox_pool.json` session expired**
-Delete both files and re-run `setup_sandbox.py` to reprovision fresh sessions.
+Delete both files and re-run `make setup` to get fresh sessions.
 
 **`ANTHROPIC_API_KEY` not set**
-The `/api/extract-bill` endpoint requires `ANTHROPIC_API_KEY` in `backend/.env`. Bill extraction will fail with a 500 error without it.
+Bill extraction (`/api/extract-bill`) will 500. Set the key in `backend/.env`.
+
+**App shows "Sandbox not set up"**
+Run `make setup` first. The backend auto-loads the pool on startup once the file exists.
 
 **Port already in use**
-- Backend default: 8000 — override with `uvicorn main:app --reload --port 8001`
-- Frontend default: 5173 — Vite will auto-increment to 5174 if busy
+- Backend: `cd backend && python -m uvicorn main:app --reload --port 8001`
+- Frontend: Vite auto-increments to 5174 if 5173 is busy
 
-**Transactions not showing**
-The backend fetches real bunq transactions from the sandbox and falls back to 5 hardcoded demo items. If the sandbox pool isn't loaded, run `setup_sandbox.py` first, then restart the backend.
+**`make` not found on Windows**
+Install via Chocolatey: `choco install make` — or use Git Bash which bundles it.

@@ -18,13 +18,10 @@ async def lifespan(app: FastAPI):
     init_bunq()
     # Auto-load sandbox pool if it's already been provisioned
     pool = get_pool()
-    import os as _os
-    from sandbox_pool import POOL_FILE
-    if _os.path.exists(POOL_FILE):
-        try:
-            pool.load_or_provision()
-        except Exception as e:
-            print(f"Warning: could not auto-load sandbox pool: {e}")
+    try:
+        pool.load_or_provision()
+    except Exception as e:
+        print(f"Warning: could not load sandbox pool: {e}")
     yield
 
 

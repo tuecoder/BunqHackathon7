@@ -10,7 +10,8 @@ const initialFlow = {
   paidByMemberId: null,
   method: null,          // 'equal' | 'per_item'
   config: null,          // { includedMembers } or { itemAssignments: {itemId: [memberId]} }
-  sentRequests: [],      // [{ to, toName, amount, bunqMeUrl }]
+  sentRequests: [],      // [{ to, toName, amount, bunqMeUrl, requestId }]
+  splitId: null,         // backend split record ID for status tracking
 }
 
 const initialState = {

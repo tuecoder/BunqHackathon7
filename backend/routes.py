@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Any
+import uuid
+from datetime import datetime
 
 router = APIRouter()
 
@@ -51,15 +53,26 @@ async def provision_sandbox():
 
 @router.get("/api/sandbox-users")
 async def list_sandbox_users():
-    """Return the pool members with current balances (pool must already be provisioned)."""
-    from sandbox_pool import get_pool
+    """Return pool members. Only fetches Alice's balance (fast). Auto-loads pool if needed."""
+    from sandbox_pool import get_pool, POOL_FILE
+    import os as _os
     pool = get_pool()
     if not pool._members:
-        raise HTTPException(status_code=404, detail="Pool not provisioned — call POST /api/provision-sandbox first")
+        if not _os.path.exists(POOL_FILE):
+            raise HTTPException(status_code=503, detail="Pool not provisioned — run setup_sandbox.py first")
+        try:
+            pool.load_or_provision()
+        except Exception as e:
+            raise HTTPException(status_code=503, detail=f"Could not load pool: {e}")
     members = pool.list_members()
-    balances = pool.get_balances()
+    # Only fetch balance for Alice (sp_0) — avoids 5 bunq API calls on every page load
+    alice_balance = "?"
+    try:
+        alice_balance = pool.get_balances().get("sp_0", "?")
+    except Exception:
+        pass
     for m in members:
-        m["balance"] = balances.get(m["id"], "?")
+        m["balance"] = alice_balance if m["id"] == "sp_0" else None
     return {"members": members}
 
 
@@ -144,13 +157,15 @@ async def get_transactions(member_id: str = Query(..., description="Pool member 
             amt_val = float(p.get("amount", {}).get("value", "0"))
             created = p.get("created", "")[:10]
             counterparty = p.get("counterparty_alias", {}).get("display_name", "Unknown")
+            description = p.get("description", "")
             txs.append({
                 "id": str(p.get("id", "")),
-                "merchant": counterparty,
+                "merchant": description or counterparty,
                 "amount": amt_val,
                 "currency": p.get("amount", {}).get("currency", "EUR"),
                 "date": created,
-                "description": p.get("description", ""),
+                "description": description,
+                "counterparty": counterparty,
                 "type": "debit" if amt_val < 0 else "credit",
             })
         # Fall back to demo data if bunq returned nothing useful
@@ -195,3 +210,77 @@ async def request_payment(req: PoolPaymentRequest):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
+
+
+# ── Splits (payment status tracking) ─────────────────────────────────────────
+
+class SplitRequestItem(BaseModel):
+    to_member_id: str
+    to_name: str
+    from_member_id: Optional[str] = None
+    from_name: Optional[str] = None
+    amount: float
+    request_id: Optional[Any] = None
+    bunq_me_url: Optional[str] = None
+
+
+class SplitRecord(BaseModel):
+    tx_description: str
+    tx_amount: float
+    requests: List[SplitRequestItem]
+
+
+@router.post("/api/splits")
+async def record_split(body: SplitRecord):
+    from splits_store import create_split
+    split = create_split(
+        tx_description=body.tx_description,
+        tx_amount=body.tx_amount,
+        requests=[r.model_dump() for r in body.requests],
+    )
+    return {"split_id": split["id"]}
+
+
+@router.get("/api/splits/{split_id}")
+async def get_split_status(split_id: str):
+    from splits_store import get_split, update_request_status
+    from sandbox_pool import get_pool
+
+    split = get_split(split_id)
+    if not split:
+        raise HTTPException(status_code=404, detail="Split not found")
+
+    # Refresh statuses from bunq for any pending requests that have a request_id
+    pool = get_pool()
+    if pool._members:
+        try:
+            alice = pool.get_member("sp_0")
+            alice_client = pool.get_client("sp_0")
+            alice_uid = alice_client.user_id
+            alice_aid = alice["account_id"]
+
+            inquiries = alice_client.get(
+                f"user/{alice_uid}/monetary-account/{alice_aid}/request-inquiry",
+                {"count": "50"},
+            )
+            bunq_status_map = {}
+            for item in inquiries:
+                req = item.get("RequestInquiry", {})
+                if req.get("id"):
+                    bunq_status_map[req["id"]] = req.get("status", "PENDING")
+
+            for req in split.get("requests", []):
+                if req.get("status") == "pending" and req.get("request_id"):
+                    bunq_status = bunq_status_map.get(req["request_id"])
+                    if bunq_status in ("ACCEPTED", "REVOKED"):
+                        update_request_status(split_id, req["request_id"], "paid")
+                        req["status"] = "paid"
+        except Exception as e:
+            print(f"Could not refresh split status from bunq: {e}")
+
+    # Re-read from disk to get merged state
+    from splits_store import get_split as _get
+    split = _get(split_id)
+    paid = sum(1 for r in split.get("requests", []) if r.get("status") == "paid")
+    pending = len(split.get("requests", [])) - paid
+    return {"split": split, "paid": paid, "pending": pending}
