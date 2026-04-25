@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+:root {
+  --bunq-green: #00d669;
+  --bg-main: #0a0a0a;
+  --bg-card: #1c1c1e;
+  --bg-elevated: #2c2c2e;
+  --border: rgba(255, 255, 255, 0.08);
+  --text-primary: #ffffff;
+  --text-secondary: #8e8e93;
+  --debit: #ff453a;
+  --credit: #32d74b;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: #0a0a0a;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  color: #ffffff;
+}
+
+#root {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100svh;
+  background: #111111;
+}
+
+@keyframes slideInUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.slide-in {
+  animation: slideInUp 0.25s ease-out;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #2c2c2e;
+  border-top-color: var(--bunq-green);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.balance-value {
+  transition: color 0.3s ease;
+}

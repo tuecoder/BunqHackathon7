@@ -1,0 +1,9 @@
+.env
+sandbox_pool.json
+groups.json
+bunq_ctx_*.json
+bunq_context.json
+__pycache__/
+*.pyc
+.venv/
+venv/
