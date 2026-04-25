@@ -54,6 +54,11 @@ async def provision_sandbox():
 @router.get("/api/sandbox-users")
 async def list_sandbox_users():
     """Return pool members. Only fetches Alice's balance (fast). Auto-loads pool if needed."""
+    from cache import get as cache_get, set as cache_set
+    cached = cache_get("sandbox_users")
+    if cached:
+        return cached
+
     from sandbox_pool import get_pool, POOL_FILE
     import os as _os
     pool = get_pool()
@@ -73,7 +78,9 @@ async def list_sandbox_users():
         pass
     for m in members:
         m["balance"] = alice_balance if m["id"] == "sp_0" else None
-    return {"members": members}
+    result = {"members": members}
+    cache_set("sandbox_users", result, ttl=60)
+    return result
 
 
 # ── Payment requests ───────────────────────────────────────────────────────────
@@ -137,6 +144,12 @@ async def create_group(req: CreateGroupRequest):
 
 @router.get("/api/transactions")
 async def get_transactions(member_id: str = Query(..., description="Pool member ID e.g. sp_0")):
+    from cache import get as cache_get, set as cache_set
+    cache_key = f"transactions_{member_id}"
+    cached = cache_get(cache_key)
+    if cached:
+        return cached
+
     from sandbox_pool import get_pool
     pool = get_pool()
     if not pool._members:
@@ -171,7 +184,9 @@ async def get_transactions(member_id: str = Query(..., description="Pool member 
         # Fall back to demo data if bunq returned nothing useful
         if not txs:
             return {"transactions": DEMO_TRANSACTIONS}
-        return {"transactions": txs}
+        result = {"transactions": txs}
+        cache_set(cache_key, result, ttl=30)
+        return result
     except Exception as e:
         print(f"Transactions fetch failed: {e}")
         return {"transactions": DEMO_TRANSACTIONS}

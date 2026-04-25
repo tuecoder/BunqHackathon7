@@ -27,6 +27,253 @@
           "status": "paid"
         }
       ]
+    },
+    {
+      "id": "split_9c5f4254",
+      "tx_description": "Albert Heijn groceries",
+      "tx_amount": 62.4,
+      "group_id": "g_0",
+      "bill_items": [
+        {
+          "name": "Fr\u00fchst\u00fcck R\u00fchrei natur",
+          "price": 6.99,
+          "quantity": 2.0,
+          "assigned_to": [
+            "sp_0",
+            "sp_2"
+          ]
+        },
+        {
+          "name": "Dallmayr Milchkaffee",
+          "price": 3.79,
+          "quantity": 1.0,
+          "assigned_to": [
+            "sp_1"
+          ]
+        },
+        {
+          "name": "Hei\u00dfes Kakaogetr\u00e4nk",
+          "price": 3.79,
+          "quantity": 1.0,
+          "assigned_to": [
+            "sp_2"
+          ]
+        }
+      ],
+      "created_at": "2026-04-25T04:43:38.336825",
+      "requests": [
+        {
+          "to_member_id": "sp_0",
+          "to_name": "Alice",
+          "from_member_id": "sp_2",
+          "from_name": "Carlos",
+          "amount": 10.78,
+          "request_id": 2357904,
+          "bunq_me_url": "https://bunqme.triage.bunq.net/o/5dY7a2JFiV4BeM5ssAggG2",
+          "status": "paid"
+        },
+        {
+          "to_member_id": "sp_0",
+          "to_name": "Alice",
+          "from_member_id": "sp_1",
+          "from_name": "Bob",
+          "amount": 3.79,
+          "request_id": 2357906,
+          "bunq_me_url": "https://bunqme.triage.bunq.net/o/1nhCNcgmn6IpJ5JVZBDIsQ",
+          "status": "paid"
+        }
+      ]
+    },
+    {
+      "id": "split_adf75692",
+      "tx_description": "Airbnb Berlin accommodation",
+      "tx_amount": 180.0,
+      "group_id": "g_0",
+      "bill_items": [
+        {
+          "name": "Geprint dekbed 140x200cm 200gsm",
+          "price": 12.95,
+          "quantity": 1.0,
+          "assigned_to": [
+            "sp_2"
+          ]
+        },
+        {
+          "name": "Hotel Royal Memory Foam Kussen 60x40cm",
+          "price": 14.95,
+          "quantity": 1.0,
+          "assigned_to": [
+            "sp_1"
+          ]
+        },
+        {
+          "name": "Persil vl. wasm. Pure Moments 0.85l 19wb",
+          "price": 3.18,
+          "quantity": 1.0,
+          "assigned_to": [
+            "sp_1"
+          ]
+        },
+        {
+          "name": "1mr Hoeslaken 180x220 Percale Klr",
+          "price": 10.95,
+          "quantity": 1.0,
+          "assigned_to": [
+            "sp_1"
+          ]
+        },
+        {
+          "name": "Formidi Huisvuilzakken 20st 60l",
+          "price": 1.28,
+          "quantity": 1.0,
+          "assigned_to": [
+            "sp_2"
+          ]
+        },
+        {
+          "name": "Dumil Bakpapier 8m",
+          "price": 0.89,
+          "quantity": 1.0,
+          "assigned_to": [
+            "sp_2"
+          ]
+        },
+        {
+          "name": "Keukendoek Blok Katoen 50x50cm Antraciet",
+          "price": 1.59,
+          "quantity": 1.0,
+          "assigned_to": [
+            "sp_0"
+          ]
+        },
+        {
+          "name": "Keukendoek 50x50cm Groen",
+          "price": 1.59,
+          "quantity": 1.0,
+          "assigned_to": [
+            "sp_1"
+          ]
+        },
+        {
+          "name": "Superfinn Toiletblok 51g Div. Var",
+          "price": 0.95,
+          "quantity": 1.0,
+          "assigned_to": [
+            "sp_1"
+          ]
+        },
+        {
+          "name": "Kussenslopen 2st Percale Katoen 60x70cm",
+          "price": 3.95,
+          "quantity": 1.0,
+          "assigned_to": [
+            "sp_1"
+          ]
+        },
+        {
+          "name": "Red Bull Energy Watermeloen 2x250ml",
+          "price": 2.67,
+          "quantity": 1.0,
+          "assigned_to": [
+            "sp_2"
+          ]
+        },
+        {
+          "name": "Statiegeld NL Blik",
+          "price": 0.3,
+          "quantity": 2.0,
+          "assigned_to": [
+            "sp_2"
+          ]
+        },
+        {
+          "name": "Dumil Pedaalemmerzakken 40st 25l",
+          "price": 0.88,
+          "quantity": 1.0,
+          "assigned_to": [
+            "sp_2"
+          ]
+        }
+      ],
+      "created_at": "2026-04-25T04:45:55.951254",
+      "requests": [
+        {
+          "to_member_id": "sp_0",
+          "to_name": "Alice",
+          "from_member_id": "sp_1",
+          "from_name": "Bob",
+          "amount": 35.57,
+          "request_id": 2357916,
+          "bunq_me_url": "https://bunqme.triage.bunq.net/o/itVRj3fvzWzRQOtvKxXFv",
+          "status": "paid"
+        },
+        {
+          "to_member_id": "sp_0",
+          "to_name": "Alice",
+          "from_member_id": "sp_2",
+          "from_name": "Carlos",
+          "amount": 19.27,
+          "request_id": 2357918,
+          "bunq_me_url": "https://bunqme.triage.bunq.net/o/1QY9Cr4MK5EuwOm1JVcK3q",
+          "status": "paid"
+        }
+      ]
+    },
+    {
+      "id": "split_b272b718",
+      "tx_description": "Dinner at Restaurant Lastage",
+      "tx_amount": 45.0,
+      "group_id": "g_0",
+      "bill_items": [
+        {
+          "name": "Fr\u00fchst\u00fcck R\u00fchrei natur",
+          "price": 6.99,
+          "quantity": 2.0,
+          "assigned_to": [
+            "sp_0",
+            "sp_2"
+          ]
+        },
+        {
+          "name": "Dallmayr Milchkaffee",
+          "price": 3.79,
+          "quantity": 1.0,
+          "assigned_to": [
+            "sp_1"
+          ]
+        },
+        {
+          "name": "Hei\u00dfes Kakaogetr\u00e4nk",
+          "price": 3.79,
+          "quantity": 1.0,
+          "assigned_to": [
+            "sp_2"
+          ]
+        }
+      ],
+      "created_at": "2026-04-25T05:05:00.169936",
+      "requests": [
+        {
+          "to_member_id": "sp_0",
+          "to_name": "Alice",
+          "from_member_id": "sp_2",
+          "from_name": "Carlos",
+          "amount": 10.78,
+          "request_id": 2358046,
+          "bunq_me_url": "https://bunqme.triage.bunq.net/o/1ozihIIhKEEPdPnaTr2h9n",
+          "status": "paid"
+        },
+        {
+          "to_member_id": "sp_0",
+          "to_name": "Alice",
+          "from_member_id": "sp_1",
+          "from_name": "Bob",
+          "amount": 3.79,
+          "request_id": 2358048,
+          "bunq_me_url": "https://bunqme.triage.bunq.net/o/56E6QMiaXpMPqcUYXjXQF0",
+          "status": "paid"
+        }
+      ]
     }
   ]
 }

@@ -9,7 +9,7 @@ MINIMUM_SPLITS_FOR_SUGGESTIONS = 2
 
 def suggest_item_assignments(bill_items: list, group_id: str, member_names: dict) -> dict:
     """
-    Returns {item_name: {suggested_to, confidence, reasoning}} or {} if not enough history.
+    Returns {item_id: {suggested_to, confidence, reasoning, item_name}} or {} if not enough history.
     member_names: {member_id: display_name}
     """
     from preference_store import get_group_preferences, get_split_count
@@ -37,9 +37,10 @@ def suggest_item_assignments(bill_items: list, group_id: str, member_names: dict
     if not history_lines:
         return {}
 
-    member_ids = list(member_names.keys())
+    # Use member IDs from pool if available, else fall back to IDs in preference history
+    member_ids = list(member_names.keys()) or list(prefs.keys())
     bill_lines = "\n".join(
-        f'{i + 1}. "{item["name"]}" €{item["price"]:.2f}'
+        f'{i + 1}. [{item.get("id", f"item_{i+1}")}] "{item["name"]}" €{item["price"]:.2f}'
         for i, item in enumerate(bill_items)
     )
 
@@ -48,16 +49,17 @@ def suggest_item_assignments(bill_items: list, group_id: str, member_names: dict
 Group members and their ordering history:
 {chr(10).join(history_lines)}
 
-New bill items:
+New bill items (format: [item_id] "name" price):
 {bill_lines}
 
 Valid member IDs: {member_ids}
 
-For each item, suggest who ordered it based on their preferences. Return ONLY valid JSON:
+For each item, suggest who ordered it. Return ONLY valid JSON:
 {{
   "suggestions": [
     {{
-      "item_name": "exact item name from list above",
+      "item_id": "item_id from the list above",
+      "item_name": "exact item name",
       "suggested_to": ["member_id"],
       "confidence": "high" | "medium" | "low",
       "reasoning": "one short sentence"
@@ -69,7 +71,7 @@ Rules:
 - Only include items where you have a reasonable guess
 - Items can be shared (multiple member_ids in suggested_to)
 - "high" = strong recurring pattern, "medium" = partial match or similar category, "low" = weak signal
-- Use exact member IDs from the valid list
+- Use exact member IDs from the valid list above
 - Omit items you genuinely cannot match
 """
 
@@ -89,4 +91,21 @@ Rules:
     except json.JSONDecodeError:
         return {}
 
-    return {s["item_name"]: s for s in data.get("suggestions", [])}
+    # Key by item_id (stable); fall back to fuzzy name match if item_id missing
+    name_to_id = {item["name"].strip().lower(): item.get("id") for item in bill_items}
+    result = {}
+    for s in data.get("suggestions", []):
+        item_id = s.get("item_id")
+        if not item_id:
+            # fuzzy fallback: find closest original item name
+            claude_name = s.get("item_name", "").strip().lower()
+            item_id = name_to_id.get(claude_name)
+            if not item_id:
+                # partial match
+                for orig_name, oid in name_to_id.items():
+                    if claude_name in orig_name or orig_name in claude_name:
+                        item_id = oid
+                        break
+        if item_id:
+            result[item_id] = s
+    return result
