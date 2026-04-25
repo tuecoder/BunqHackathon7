@@ -1,6 +1,6 @@
 # bunq Split — Hackathon 7.0
 
-A multimodal AI-powered bill splitter built on the bunq API. Point your phone at a receipt, let Claude extract the items, choose who splits, and send real bunq payment requests in one tap.
+A multimodal AI-powered bill splitter built on the bunq API. Point your phone at a receipt, let Claude extract the items, choose who splits, and send real bunq payment requests in one tap. The app learns each person's ordering preferences over time and auto-suggests who ordered what on future bills.
 
 **Flow:** Home → Transaction → Camera → Digital bill → Split target → Split method → Configure → Settlement → Sent (with live paid/pending status)
 
@@ -126,6 +126,8 @@ BunqHackathon7/
 │   ├── sandbox_pool.py         5-user sandbox management
 │   ├── groups_store.py         Group JSON persistence
 │   ├── splits_store.py         Split + payment status persistence
+│   ├── preference_store.py     Per-group item preference history
+│   ├── ai_suggester.py         Claude-powered assignment suggestions
 │   ├── setup_sandbox.py        One-time sandbox setup script
 │   ├── add_demo_payments.py    Adds 3 demo transactions per run
 │   ├── approve_requests.py     Approves pending payment requests
@@ -144,6 +146,20 @@ BunqHackathon7/
 
 ---
 
+## Preference learning
+
+When you split a bill by item, the app records who ordered what in `backend/preference_store.json`. After 2+ splits in the same group, it uses Claude to suggest assignments on the next bill — matching item names to each person's ordering history across categories (e.g. "Birra Moretti" → Bob, who always orders beer).
+
+| Splits in group | Behaviour |
+|-----------------|-----------|
+| 0–1 | No suggestions — assign everything manually |
+| 2+ | `✦ AI` badge appears on items that match someone's history |
+| 5+ | High-confidence matches are pre-filled automatically |
+
+Suggestions are silent: if the API fails or there's no history, the UI is unchanged. Any assignment you confirm — whether you accepted the suggestion or changed it — becomes the training data for the next split.
+
+---
+
 ## API endpoints
 
 | Method | Path | Description |
@@ -155,8 +171,9 @@ BunqHackathon7/
 | `POST` | `/api/groups` | Create a group |
 | `POST` | `/api/extract-bill` | Receipt image → Claude extracts items |
 | `POST` | `/api/request-payment` | Create bunq.me payment request |
-| `POST` | `/api/splits` | Record a completed split |
+| `POST` | `/api/splits` | Record a completed split (stores item assignments for learning) |
 | `GET` | `/api/splits/{split_id}` | Live paid/pending status for a split |
+| `POST` | `/api/suggest-assignments` | Claude-powered item → person suggestions based on group history |
 
 ---
 
@@ -210,7 +227,7 @@ cd frontend && npm install && npm run dev
 Delete both files and re-run `make setup` to get fresh sessions.
 
 **`ANTHROPIC_API_KEY` not set**
-Bill extraction (`/api/extract-bill`) will 500. Set the key in `backend/.env`.
+Bill extraction (`/api/extract-bill`) and preference suggestions (`/api/suggest-assignments`) will 500. Set the key in `backend/.env`.
 
 **App shows "Sandbox not set up"**
 Run `make setup` first. The backend auto-loads the pool on startup once the file exists.

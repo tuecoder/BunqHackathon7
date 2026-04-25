@@ -47,11 +47,19 @@ def update_request_status(split_id: str, request_id, status: str) -> None:
     _save(splits)
 
 
-def create_split(tx_description: str, tx_amount: float, requests: list) -> dict:
+def create_split(
+    tx_description: str,
+    tx_amount: float,
+    requests: list,
+    bill_items: list = None,
+    group_id: str = None,
+) -> dict:
     split = {
         "id": f"split_{uuid.uuid4().hex[:8]}",
         "tx_description": tx_description,
         "tx_amount": tx_amount,
+        "group_id": group_id,
+        "bill_items": bill_items or [],
         "created_at": datetime.utcnow().isoformat(),
         "requests": [
             {

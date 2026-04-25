@@ -4,7 +4,7 @@ import BackHeader from '../components/BackHeader'
 
 export default function SettlementPage({ onBack, onDone }) {
   const { state, dispatch } = useTripStore()
-  const { tx, method, config, targetMemberIds, paidByMemberId } = state.flow
+  const { tx, method, config, targetMemberIds, paidByMemberId, targetGroupId, bill } = state.flow
   const allMembers = state.members
   const targetMembers = allMembers.filter(m => (targetMemberIds ?? []).includes(m.id))
   const total = Math.abs(tx?.amount ?? 0)
@@ -58,15 +58,26 @@ export default function SettlementPage({ onBack, onDone }) {
     }
     dispatch({ type: 'UPDATE_FLOW', payload: { sentRequests: requests } })
 
-    // Record split for status tracking
+    // Record split for status tracking and preference learning
     if (requests.length > 0) {
       try {
+        const billItems = []
+        if (method === 'per_item' && config?.itemAssignments && config?.items) {
+          for (const item of config.items) {
+            const assignedTo = config.itemAssignments[item.id] ?? []
+            if (assignedTo.length > 0) {
+              billItems.push({ name: item.name, price: item.price, quantity: item.quantity ?? 1, assigned_to: assignedTo })
+            }
+          }
+        }
         const splitRes = await fetch('/api/splits', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             tx_description: tx?.merchant ?? 'Expense',
             tx_amount: Math.abs(tx?.amount ?? 0),
+            group_id: targetGroupId ?? null,
+            bill_items: billItems,
             requests: requests.map(r => ({
               to_member_id: r.to,
               to_name: r.toName,

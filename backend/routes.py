@@ -224,21 +224,59 @@ class SplitRequestItem(BaseModel):
     bunq_me_url: Optional[str] = None
 
 
+class BillItemAssignment(BaseModel):
+    name: str
+    price: float
+    quantity: float = 1.0
+    assigned_to: List[str]
+
+
 class SplitRecord(BaseModel):
     tx_description: str
     tx_amount: float
+    group_id: Optional[str] = None
     requests: List[SplitRequestItem]
+    bill_items: List[BillItemAssignment] = []
 
 
 @router.post("/api/splits")
 async def record_split(body: SplitRecord):
     from splits_store import create_split
+    from preference_store import record_item_assignments
     split = create_split(
         tx_description=body.tx_description,
         tx_amount=body.tx_amount,
         requests=[r.model_dump() for r in body.requests],
+        bill_items=[i.model_dump() for i in body.bill_items],
+        group_id=body.group_id,
     )
+    if body.group_id and body.bill_items:
+        try:
+            record_item_assignments(body.group_id, [i.model_dump() for i in body.bill_items], split["created_at"])
+        except Exception as e:
+            print(f"Could not record item preferences: {e}")
     return {"split_id": split["id"]}
+
+
+# ── Preference-based suggestions ──────────────────────────────────────────────
+
+class SuggestRequest(BaseModel):
+    group_id: str
+    bill_items: List[Any]
+
+
+@router.post("/api/suggest-assignments")
+async def suggest_assignments(req: SuggestRequest):
+    from ai_suggester import suggest_item_assignments
+    from sandbox_pool import get_pool
+    pool = get_pool()
+    member_names = {m["id"]: m["name"] for m in pool.list_members()} if pool._members else {}
+    try:
+        suggestions = suggest_item_assignments(req.bill_items, req.group_id, member_names)
+    except Exception as e:
+        print(f"Suggestion error: {e}")
+        suggestions = {}
+    return {"suggestions": suggestions, "has_history": bool(suggestions)}
 
 
 @router.get("/api/splits/{split_id}")

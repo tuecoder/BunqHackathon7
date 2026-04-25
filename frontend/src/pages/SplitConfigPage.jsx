@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTripStore } from '../store/tripStore'
 import BackHeader from '../components/BackHeader'
 
 export default function SplitConfigPage({ onBack, onNext }) {
   const { state, dispatch } = useTripStore()
-  const { tx, bill, method, targetMemberIds, paidByMemberId } = state.flow
+  const { tx, bill, method, targetMemberIds, paidByMemberId, targetGroupId } = state.flow
   const allMembers = state.members
   const total = Math.abs(tx?.amount ?? 0)
 
@@ -12,10 +12,40 @@ export default function SplitConfigPage({ onBack, onNext }) {
   const [itemAssignments, setItemAssignments] = useState(() => {
     const init = {}
     if (bill?.items) {
-      bill.items.forEach(item => { init[item.id] = targetMemberIds ?? [] })
+      bill.items.forEach(item => { init[item.id] = [] })
     }
     return init
   })
+  const [suggestions, setSuggestions] = useState({})
+  const [suggestedItemIds, setSuggestedItemIds] = useState(new Set())
+
+  useEffect(() => {
+    if (method !== 'per_item' || !targetGroupId || !bill?.items?.length) return
+    fetch('/api/suggest-assignments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ group_id: targetGroupId, bill_items: bill.items }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.has_history) return
+        setSuggestions(data.suggestions)
+        const updates = {}
+        const autoIds = new Set()
+        for (const item of bill.items) {
+          const sug = data.suggestions[item.name]
+          if (sug && sug.confidence === 'high') {
+            updates[item.id] = sug.suggested_to
+            autoIds.add(item.id)
+          }
+        }
+        if (Object.keys(updates).length > 0) {
+          setItemAssignments(prev => ({ ...prev, ...updates }))
+          setSuggestedItemIds(autoIds)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const targetMembers = allMembers.filter(m => (targetMemberIds ?? []).includes(m.id))
 
@@ -152,11 +182,24 @@ export default function SplitConfigPage({ onBack, onNext }) {
         {items.map(item => {
           const assigned = itemAssignments[item.id] ?? []
           const itemTotal = item.price * (item.quantity ?? 1)
+          const sug = suggestions[item.name]
+          const isAutoFilled = suggestedItemIds.has(item.id)
           return (
             <div key={item.id} className="rounded-2xl p-4" style={cardStyle}>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-semibold text-white">{item.name}</p>
-                <p className="text-sm font-bold text-white">€{itemTotal.toFixed(2)}</p>
+                <div className="flex items-center gap-2 min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">{item.name}</p>
+                  {sug && (
+                    <span
+                      className="text-xs font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                      style={{ background: '#00d66920', color: '#00d669', border: '1px solid #00d66940' }}
+                      title={sug.reasoning}
+                    >
+                      ✦ AI
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm font-bold text-white ml-2">€{itemTotal.toFixed(2)}</p>
               </div>
               {item.quantity > 1 && (
                 <p className="text-xs mb-2" style={{ color: '#8e8e93' }}>×{item.quantity} @ €{item.price.toFixed(2)}</p>
