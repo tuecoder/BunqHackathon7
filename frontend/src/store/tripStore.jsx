@@ -63,10 +63,11 @@ function loadFromStorage() {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return { ...initialState, myMemberId: 'sp_0' }
     const saved = JSON.parse(raw)
-    // Alice (sp_0) is always the default — persisted identity can override
     return {
       ...initialState,
       myMemberId: saved.myMemberId ?? 'sp_0',
+      members: saved.members ?? [],
+      groups: saved.groups ?? [],
     }
   } catch {
     return { ...initialState, myMemberId: 'sp_0' }
@@ -77,8 +78,12 @@ export function TripProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, undefined, loadFromStorage)
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ myMemberId: state.myMemberId }))
-  }, [state.myMemberId])
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      myMemberId: state.myMemberId,
+      members: state.members,
+      groups: state.groups,
+    }))
+  }, [state.myMemberId, state.members, state.groups])
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>

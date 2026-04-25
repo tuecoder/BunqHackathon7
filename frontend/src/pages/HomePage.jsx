@@ -59,10 +59,14 @@ function BottomNav({ activeTab, onTabChange }) {
 export default function HomePage({ onTxSelect, onReset }) {
   const { state, dispatch } = useTripStore()
   const [tab, setTab] = useState(0)
-  const [transactions, setTransactions] = useState([])
+  const [transactions, setTransactions] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('bunq_txs_sp0') || '[]') } catch { return [] }
+  })
   const [txLoading, setTxLoading] = useState(false)
-  const [groups, setGroups] = useState([])
-  const [myMember, setMyMember] = useState(null)
+  const [groups, setGroups] = useState(state.groups.length > 0 ? state.groups : [])
+  const [myMember, setMyMember] = useState(
+    () => state.members.find(m => m.id === (state.myMemberId ?? 'sp_0')) ?? null
+  )
   const [balanceRefreshing, setBalanceRefreshing] = useState(false)
   const [setupNeeded, setSetupNeeded] = useState(false)
 
@@ -108,6 +112,7 @@ export default function HomePage({ onTxSelect, onReset }) {
       if (res.ok) {
         const data = await res.json()
         setTransactions(data.transactions)
+        try { localStorage.setItem('bunq_txs_sp0', JSON.stringify(data.transactions)) } catch {}
       }
     } catch {} finally {
       setTxLoading(false)
@@ -234,7 +239,7 @@ export default function HomePage({ onTxSelect, onReset }) {
             <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#8e8e93' }}>
               Recent transactions
             </p>
-            {txLoading && (
+            {txLoading && transactions.length === 0 && (
               <div className="flex justify-center py-12">
                 <div className="spinner" />
               </div>

@@ -33,7 +33,7 @@ export default function SplitConfigPage({ onBack, onNext }) {
         const updates = {}
         const autoIds = new Set()
         for (const item of bill.items) {
-          const sug = data.suggestions[item.name]
+          const sug = data.suggestions[item.id]
           if (sug && sug.confidence === 'high') {
             updates[item.id] = sug.suggested_to
             autoIds.add(item.id)
@@ -182,7 +182,7 @@ export default function SplitConfigPage({ onBack, onNext }) {
         {items.map(item => {
           const assigned = itemAssignments[item.id] ?? []
           const itemTotal = item.price * (item.quantity ?? 1)
-          const sug = suggestions[item.name]
+          const sug = suggestions[item.id]
           const isAutoFilled = suggestedItemIds.has(item.id)
           return (
             <div key={item.id} className="rounded-2xl p-4" style={cardStyle}>
